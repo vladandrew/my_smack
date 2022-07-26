@@ -508,14 +508,22 @@ void SmackInstGenerator::visitStoreInst(llvm::StoreInst &si) {
   const llvm::Value *P = si.getPointerOperand();
   const llvm::Value *V = si.getValueOperand()->stripPointerCastsAndAliases();
   assert(!V->getType()->isAggregateType() && "Unexpected store value.");
-
+  
+  emit(Stmt::code("assert {:asan_finish} (true == true);"));
+  
   if (isa<FixedVectorType>(V->getType())) {
     auto D = VectorOperations(rep).store(P);
     auto M = Expr::id(rep->memPath(P));
     auto E = Expr::fn(D->getName(), {M, rep->expr(P), rep->expr(V)});
+
     emit(Stmt::assign(M, E));
   } else {
-    emit(rep->store(P, V));
+    
+   // emit(Stmt::code(std::string("assert {:valid_deref} ($Alloc[$base(") + V.str() + std::string("p)]);")));
+    auto res = rep->store(P,V);
+    //res->print(std::cout);
+    emit(res);
+
     if (const Stmt *inverseAssume = rep->inverseFPCastAssume(&si)) {
       emit(inverseAssume);
     }
@@ -541,6 +549,8 @@ void SmackInstGenerator::visitStoreInst(llvm::StoreInst &si) {
     emit(recordProcedureCall(P, {}));
     emit(recordProcedureCall(V, {}));
   }
+
+
 }
 
 void SmackInstGenerator::visitAtomicCmpXchgInst(llvm::AtomicCmpXchgInst &i) {

@@ -33,6 +33,7 @@ class VResult(Flag):
     RUST_PANIC = auto()
     TIMEOUT = auto()
     UNKNOWN = auto()
+    ASAN = auto()
     MEMSAFETY_ERROR = INVALID_DEREF | INVALID_FREE | INVALID_MEMTRACK
     ERROR = (ASSERTION_FAILURE | INVALID_DEREF | INVALID_FREE
              | INVALID_MEMTRACK | OVERFLOW | RUST_PANIC)
@@ -49,6 +50,7 @@ class VResult(Flag):
             VResult.INVALID_FREE: 'invalid memory deallocation',
             VResult.INVALID_MEMTRACK: 'memory leak',
             VResult.OVERFLOW: 'integer overflow',
+            VResult.ASAN: 'asan not needed',
             VResult.RUST_PANIC: 'Rust panic'}
 
         if self in descriptions:
@@ -69,7 +71,9 @@ class VResult(Flag):
             VResult.OVERFLOW: 5,
             VResult.RUST_PANIC: 6,
             VResult.TIMEOUT: 126,
-            VResult.UNKNOWN: 127}
+            VResult.ASAN: 154,
+            VResult.UNKNOWN: 127
+            }
 
         if self in return_codes:
             return return_codes[self]
@@ -132,6 +136,7 @@ class VProperty(Flag):
     MEMORY_SAFETY = VALID_DEREF | VALID_FREE | MEMLEAK
     INTEGER_OVERFLOW = auto()
     RUST_PANICS = auto()
+    ASAN = auto()
 
     def __str__(self):
         return self.name.lower().replace('_', '-')
@@ -173,7 +178,9 @@ class VProperty(Flag):
             VProperty.VALID_FREE: get_attr_from_result(VResult.INVALID_FREE),
             VProperty.MEMLEAK: get_attr_from_result(VResult.INVALID_MEMTRACK),
             VProperty.INTEGER_OVERFLOW: get_attr_from_result(VResult.OVERFLOW),
-            VProperty.RUST_PANICS: get_attr_from_result(VResult.RUST_PANIC)}
+            VProperty.RUST_PANICS: get_attr_from_result(VResult.RUST_PANIC),
+            VProperty.ASAN: get_attr_from_result(VResult.ASAN)
+            }
 
         if self in attrs:
             return attrs[self]
@@ -496,7 +503,7 @@ def arguments():
         help='''select properties to check
                 [choices: %(choices)s; default: assertions]
                 (note that memory-safety is the union of valid-deref,
-                valid-free, memleak)''')
+                valid-free, memleak, asan)''')
 
     translate_group.add_argument(
         '--llvm-assumes',
@@ -754,6 +761,8 @@ def llvm_to_bpl(args):
         cmd += ['-integer-overflow']
     if VProperty.RUST_PANICS in args.check:
         cmd += ['-rust-panics']
+    if VProperty.ASAN in args.check:
+        cmd += ['-asan']
     if args.fail_on_loop_exit:
         cmd += ['-fail-on-loop-exit']
     if args.llvm_assumes:
@@ -955,6 +964,7 @@ def verify_bpl(args):
 
     verifier_output = try_command(command, timeout=args.time_limit)
     verifier_output = transform_out(args, verifier_output)
+
     result = verification_result(verifier_output, args.verifier)
 
     if args.json_file:
@@ -972,6 +982,8 @@ def verify_bpl(args):
             print(error)
 
         if args.replay:
+            print("#####")
+            print(args)
             replay_error_trace(verifier_output, args)
     print(result.message(args))
     return result.return_code()

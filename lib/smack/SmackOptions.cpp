@@ -73,6 +73,10 @@ const llvm::cl::opt<bool> SmackOptions::FloatEnabled(
 const llvm::cl::opt<bool>
     SmackOptions::MemorySafety("memory-safety",
                                llvm::cl::desc("Enable memory safety checks"));
+                               
+const llvm::cl::opt<bool>
+    SmackOptions::ASAN("asan",
+                               llvm::cl::desc("Enable asan checks"));
 
 const llvm::cl::opt<bool> SmackOptions::IntegerOverflow(
     "integer-overflow", llvm::cl::desc("Enable integer overflow checks"));

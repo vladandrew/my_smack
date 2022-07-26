@@ -116,6 +116,7 @@ add_library(smackTranslator STATIC
   include/smack/SmackRep.h
   include/smack/VectorOperations.h
   include/smack/MemorySafetyChecker.h
+  include/smack/ASANChecker.h
   include/smack/IntegerOverflowChecker.h
   include/smack/RewriteBitwiseOps.h
   include/smack/NormalizeLoops.h
@@ -143,6 +144,7 @@ add_library(smackTranslator STATIC
   lib/smack/SmackRep.cpp
   lib/smack/VectorOperations.cpp
   lib/smack/MemorySafetyChecker.cpp
+  lib/smack/ASANChecker.cpp
   lib/smack/IntegerOverflowChecker.cpp
   lib/smack/RewriteBitwiseOps.cpp
   lib/smack/NormalizeLoops.cpp

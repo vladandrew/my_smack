@@ -1411,6 +1411,9 @@ void __SMACK_check_overflow(int flag) {
 
 void __SMACK_loop_exit(void) { __SMACK_code("assert {:loopexit} false;"); }
 
+void __SMACK_new_ASAN(void) { __SMACK_code("assert {:loopexit} false;"); }
+
+
 char __VERIFIER_nondet_char(void) {
   char x = __SMACK_nondet_char();
   __VERIFIER_assume(x >= SCHAR_MIN && x <= SCHAR_MAX);
@@ -1626,6 +1629,95 @@ void __SMACK_decls(void) {
     "  call p := $$alloc(n);\n"
     "  call corral_atomic_end();\n"
     "}\n");
+
+#define ASAN 1
+#if ASAN
+  __SMACK_dummy((int)__SMACK_check_asan);
+
+
+  D("implementation {:inline 1} __SMACK_check_asan(p: ref, size: ref)\n"
+    "{\n"
+    // Heap & stack references: Use-after-free, Out-of-bounds accesses to heap   
+    " assert {:asan_check} ($Alloc[$base(p)]) && ($sle.ref.bool($base(p), p)) && ($sle.ref.bool($add.ref(p, size),$add.ref($base(p), $Size[$base(p)])));\n"
+    //" assert {:asan_check} $sle.ref.bool($base(p), p);\n"
+    //" assert {:asan_check} $sle.ref.bool($add.ref(p, size), "
+    //"$add.ref($base(p), $Size[$base(p)]));\n"
+    
+    //"  assert {:valid_deref} (exists q : ref :: (q == p) ==> ($Alloc[$base(q)] == false));\n"
+    //"  assert {:valid_deref} (exists q : ref :: (q == p) ==> $sle.ref.bool($base(q), q));\n"
+    // Out-of-bounds accesses to heap, stack and globals
+   
+    // Use-after-return
+    // Use-after-scope
+    // Double-free, invalid free
+    // Memory leaks (experimental)
+    // Typical slowdown introduced by AddressSanitizer is 2x.
+    "}\n");
+
+
+  D("function $base(ref) returns (ref);");
+  D("var $allocatedCounter: int;\n");
+
+  D("procedure $malloc(n: ref) returns (p: ref)\n"
+    "modifies $allocatedCounter;\n"
+    "{\n"
+    "  call corral_atomic_begin();\n"
+    "  if ($ne.ref.bool(n, $0.ref)) {\n"
+    "    $allocatedCounter := $allocatedCounter + 1;\n"
+    "  }\n"
+    "  call p := $$alloc(n);\n"
+    "  call corral_atomic_end();\n"
+    "}\n");
+  
+  D("var $Alloc: [ref] bool;");
+  D("var $StackAlloc: [ref] bool;");
+
+  D("var $Size: [ref] ref;\n");
+
+  // LLVM does not allocated globals explicitly. Hence, we do it in our prelude
+  // before the program starts using the $galloc procedure.
+  D("procedure $galloc(base_addr: ref, size: ref);\n"
+    "modifies $Alloc, $Size;\n"
+    "ensures $Size[base_addr] == size;\n"
+    "ensures (forall addr: ref :: {$base(addr)} $sle.ref.bool(base_addr, addr) "
+    "&& $slt.ref.bool(addr, $add.ref(base_addr, size)) ==> $base(addr) == "
+    "base_addr);\n"
+    "ensures $Alloc[base_addr];\n"
+    "ensures (forall q: ref :: {$Size[q]} q != base_addr ==> $Size[q] == "
+    "old($Size[q]));\n"
+    "ensures (forall q: ref :: {$Alloc[q]} q != base_addr ==> $Alloc[q] == "
+    "old($Alloc[q]));\n");
+
+  D("procedure {:inline 1} $$alloc(n: ref) returns (p: ref);\n"
+    "modifies $Alloc, $Size;\n"
+    "ensures $sle.ref.bool($0.ref, n);\n"
+    "ensures $slt.ref.bool($0.ref, n) ==> $slt.ref.bool($0.ref, p) && "
+    "$slt.ref.bool(p, $sub.ref($MALLOC_TOP, n));\n"
+    "ensures $eq.ref.bool(n, $0.ref) ==> p == $0.ref;\n"
+    "ensures !old($Alloc[p]);\n"
+    "ensures (forall q: ref :: old($Alloc[q]) ==> ($slt.ref.bool($add.ref(p, "
+    "n), q) || $slt.ref.bool($add.ref(q, $Size[q]), p)));\n"
+    "ensures $Alloc[p];\n"
+    "ensures $Size[p] == n;\n"
+    "ensures (forall q: ref :: {$Size[q]} q != p ==> $Size[q] == "
+    "old($Size[q]));\n"
+    "ensures (forall q: ref :: {$Alloc[q]} q != p ==> $Alloc[q] == "
+    "old($Alloc[q]));\n"
+    "ensures (forall q: ref :: {$base(q)} $sle.ref.bool(p, q) && "
+    "$slt.ref.bool(q, $add.ref(p, n)) ==> $base(q) == p);\n");
+
+  D("procedure $free(p: ref);\n"
+    "modifies $Alloc, $allocatedCounter;\n"
+    "requires $eq.ref.bool(p, $0.ref) || ($slt.ref.bool($0.ref, p) && "
+    "$eq.ref.bool($base(p), p) && $Alloc[p]);\n"
+    "ensures $ne.ref.bool(p, $0.ref) ==> !$Alloc[p];\n"
+    "ensures $ne.ref.bool(p, $0.ref) ==> (forall q: ref :: {$Alloc[q]} q != p "
+    "==> $Alloc[q] == old($Alloc[q]));\n"
+    "ensures $ne.ref.bool(p, $0.ref) ==> $allocatedCounter == "
+    "old($allocatedCounter) - 1;\n"
+    "ensures $eq.ref.bool(p, $0.ref) ==> $allocatedCounter == "
+    "old($allocatedCounter);\n");
+#else
 
 #if MEMORY_SAFETY
   __SMACK_dummy((int)__SMACK_check_memory_safety);
@@ -1868,6 +1960,7 @@ void __SMACK_decls(void) {
     "$0.ref;\n");
 
   D("procedure $free(p: ref);\n");
+#endif
 #endif
 #endif
 

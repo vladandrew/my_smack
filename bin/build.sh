@@ -258,23 +258,23 @@ if [ ${INSTALL_DEPENDENCIES} -eq 1 ] ; then
       ;;
     esac
 
-    if [ ${INSTALL_OBJECTIVEC} -eq 1 ] ; then
-      sudo apt-get install -y gobjc gnustep gnustep-make gnustep-common gnustep-devel
-    fi
+    #if [ ${INSTALL_OBJECTIVEC} -eq 1 ] ; then
+    #  sudo apt-get install -y gobjc gnustep gnustep-make gnustep-common gnustep-devel
+    #fi
 
     # Adding LLVM repository
-    if [ ${INSTALL_LLVM} -eq 1 ] ; then
-      ${WGET} -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-      sudo add-apt-repository "deb http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${LLVM_SHORT_VERSION} main"
-    fi
+    #if [ ${INSTALL_LLVM} -eq 1 ] ; then
+    #  ${WGET} -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+    #  sudo add-apt-repository "deb http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${LLVM_SHORT_VERSION} main"
+    #fi
 
     # Adding .NET repository
-    ${WGET} -q https://packages.microsoft.com/config/ubuntu/${RELEASE_VERSION}/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-    sudo dpkg -i packages-microsoft-prod.deb
-    rm -f packages-microsoft-prod.deb
-    sudo apt-get update
+    #${WGET} -q https://packages.microsoft.com/config/ubuntu/${RELEASE_VERSION}/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+    #sudo dpkg -i packages-microsoft-prod.deb
+    #rm -f packages-microsoft-prod.deb
+    #sudo apt-get update
 
-    sudo apt-get install -y ${DEPENDENCIES}
+    #sudo apt-get install -y ${DEPENDENCIES}
     ;;
 
   *)
@@ -494,14 +494,14 @@ if [ ${BUILD_SMACK} -eq 1 ] ; then
 fi
 
 
-if [ ${TEST_SMACK} -eq 1 ] ; then
-  puts "Running SMACK regression tests"
-
-  cd ${SMACK_DIR}/test
-  ./regtest.py ${REGTEST_ENV}
-  res=$?
-
-  puts "Regression tests complete"
-fi
+#if [ ${TEST_SMACK} -eq 1 ] ; then
+#  puts "Running SMACK regression tests"
+#
+#  cd ${SMACK_DIR}/test
+#  ./regtest.py ${REGTEST_ENV}
+#  res=$?
+#
+#  puts "Regression tests complete"
+#fi
 
 exit $res

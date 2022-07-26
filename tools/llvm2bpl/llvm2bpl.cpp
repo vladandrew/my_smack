@@ -35,6 +35,7 @@
 #include "smack/InitializePasses.h"
 #include "smack/IntegerOverflowChecker.h"
 #include "smack/MemorySafetyChecker.h"
+#include "smack/ASANChecker.h"
 #include "smack/Naming.h"
 #include "smack/NormalizeLoops.h"
 #include "smack/RemoveDeadDefs.h"
@@ -216,6 +217,11 @@ int main(int argc, char **argv) {
 
   if (smack::SmackOptions::MemorySafety) {
     pass_manager.add(new smack::MemorySafetyChecker());
+  }
+
+  if (smack::SmackOptions::ASAN) {
+    printf("ASAN Checking on\n");
+    pass_manager.add(new smack::ASANChecker());
   }
 
   pass_manager.add(new smack::IntegerOverflowChecker());
